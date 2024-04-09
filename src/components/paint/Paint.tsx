@@ -65,7 +65,19 @@ const Paint = () => {
           onClick={handleClickUndo}>
           Undo
         </button>
-        <button onClick={handleClickRedo}>Redo</button>
+        <button
+          className="mr-5"
+          onClick={handleClickRedo}>
+          Redo
+        </button>
+        <select
+          value={tool}
+          onChange={(e) => {
+            setTool(e.target.value);
+          }}>
+          <option value="pen">Pen</option>
+          <option value="eraser">Eraser</option>
+        </select>
       </div>
       <Stage
         width={window.innerWidth}
