@@ -24,10 +24,10 @@ const Paint = () => {
   const [history, setHistory] = useState<History>(INIT_HISTORY);
 
   const lines = history.lines.slice(0, history.currentIdx);
-  const isDrawing = useRef(false);
+  const isPainting = useRef(false);
 
   const handleStartPaint = (e: KonvaEventObject<MouseEvent>) => {
-    isDrawing.current = true;
+    isPainting.current = true;
 
     const pos = e.target.getStage()?.getPointerPosition();
     if (!pos) return;
@@ -42,7 +42,7 @@ const Paint = () => {
   };
 
   const handlePainting = (e: KonvaEventObject<MouseEvent>) => {
-    if (!isDrawing.current) {
+    if (!isPainting.current) {
       return;
     }
     const stage = e.target.getStage();
@@ -58,7 +58,7 @@ const Paint = () => {
   };
 
   const handleStopPaint = () => {
-    isDrawing.current = false;
+    isPainting.current = false;
   };
 
   const handleClickUndo = () => {
