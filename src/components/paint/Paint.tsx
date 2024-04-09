@@ -1,20 +1,29 @@
 'use client';
 import { KonvaEventObject } from 'konva/lib/Node';
 import { useRef, useState } from 'react';
-import { Stage, Layer, Text, Star, Image, Shape, Line } from 'react-konva';
-import useImage from 'use-image';
+import { Stage, Layer, Text, Line } from 'react-konva';
+import { useEffect } from 'react';
 
 interface ILine {
   tool: string;
   points: Array<number>;
 }
 
+interface History {
+  currentIdx: number;
+  lines: Array<ILine>;
+}
+
+const INIT_HISTORY: History = {
+  currentIdx: 0,
+  lines: [],
+};
+
 const Paint = () => {
   const [tool, setTool] = useState('pen');
-  const [historyLines, setHistoryLines] = useState<Array<ILine>>([]);
-  const [historyIdx, setHistoryIdx] = useState<number>(0);
+  const [history, setHistory] = useState<History>(INIT_HISTORY);
 
-  const lines = historyLines.slice(0, historyIdx);
+  const lines = history.lines.slice(0, history.currentIdx);
   const isDrawing = useRef(false);
 
   const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {
@@ -23,10 +32,13 @@ const Paint = () => {
     const pos = e.target.getStage()?.getPointerPosition();
     if (!pos) return;
 
-    const lines = historyLines.slice(0, historyIdx);
+    const lines = history.lines.slice(0, history.currentIdx);
 
-    setHistoryLines([...lines, { tool, points: [pos.x, pos.y] }]);
-    setHistoryIdx(historyIdx + 1);
+    setHistory({
+      ...history,
+      currentIdx: history.currentIdx + 1,
+      lines: [...lines, { tool, points: [pos.x, pos.y] }],
+    });
   };
 
   const handleMouseMove = (e: KonvaEventObject<MouseEvent>) => {
@@ -37,11 +49,12 @@ const Paint = () => {
     const point = stage?.getPointerPosition();
     if (!point) return;
 
-    const lastLine = historyLines[historyLines.length - 1];
-    lastLine.points = lastLine.points.concat([point.x, point.y]);
+    const lastLine = history.lines[history.lines.length - 1];
+    lastLine.points = [...lastLine.points, point.x, point.y];
 
-    historyLines.splice(historyLines.length - 1, 1, lastLine);
-    setHistoryLines(historyLines.concat());
+    const newLines = [...history.lines];
+    newLines[newLines.length - 1] = { ...newLines[newLines.length - 1] };
+    setHistory({ ...history, lines: [...newLines] });
   };
 
   const handleMouseUp = () => {
@@ -49,14 +62,35 @@ const Paint = () => {
   };
 
   const handleClickUndo = () => {
-    if (historyIdx === 0) return;
-    setHistoryIdx(historyIdx - 1);
+    setHistory((history) => {
+      if (history.currentIdx === 0) return { ...history, currentIdx: 0 };
+      return { ...history, currentIdx: history.currentIdx - 1 };
+    });
   };
 
   const handleClickRedo = () => {
-    if (historyLines.length === historyIdx) return;
-    setHistoryIdx(historyIdx + 1);
+    setHistory((history) => {
+      if (history.currentIdx === history.lines.length) return { ...history };
+      return { ...history, currentIdx: history.currentIdx + 1 };
+    });
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      if (e.ctrlKey && key === 'z') {
+        handleClickUndo();
+      }
+      if (e.ctrlKey && key === 'y') {
+        handleClickRedo();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   return (
     <div>
       <div className="flex">
