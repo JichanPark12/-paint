@@ -61,14 +61,14 @@ const Paint = () => {
     isPainting.current = false;
   };
 
-  const handleClickUndo = () => {
+  const handleUndo = () => {
     setHistory((history) => {
       if (history.currentIdx === 0) return { ...history, currentIdx: 0 };
       return { ...history, currentIdx: history.currentIdx - 1 };
     });
   };
 
-  const handleClickRedo = () => {
+  const handleRedo = () => {
     setHistory((history) => {
       if (history.currentIdx === history.lines.length) return { ...history };
       return { ...history, currentIdx: history.currentIdx + 1 };
@@ -79,10 +79,10 @@ const Paint = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
       if (e.ctrlKey && key === 'z') {
-        handleClickUndo();
+        handleUndo();
       }
       if (e.ctrlKey && key === 'y') {
-        handleClickRedo();
+        handleRedo();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
@@ -96,12 +96,12 @@ const Paint = () => {
       <div className="flex">
         <button
           className="mr-5"
-          onClick={handleClickUndo}>
+          onClick={handleUndo}>
           Undo
         </button>
         <button
           className="mr-5"
-          onClick={handleClickRedo}>
+          onClick={handleRedo}>
           Redo
         </button>
         <select
