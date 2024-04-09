@@ -26,7 +26,7 @@ const Paint = () => {
   const lines = history.lines.slice(0, history.currentIdx);
   const isDrawing = useRef(false);
 
-  const startPaint = (e: KonvaEventObject<MouseEvent>) => {
+  const handleStartPaint = (e: KonvaEventObject<MouseEvent>) => {
     isDrawing.current = true;
 
     const pos = e.target.getStage()?.getPointerPosition();
@@ -41,7 +41,7 @@ const Paint = () => {
     });
   };
 
-  const Painting = (e: KonvaEventObject<MouseEvent>) => {
+  const handlePainting = (e: KonvaEventObject<MouseEvent>) => {
     if (!isDrawing.current) {
       return;
     }
@@ -57,7 +57,7 @@ const Paint = () => {
     setHistory({ ...history, lines: [...newLines] });
   };
 
-  const stopPaint = () => {
+  const handleStopPaint = () => {
     isDrawing.current = false;
   };
 
@@ -116,10 +116,10 @@ const Paint = () => {
       <Stage
         width={window.innerWidth}
         height={window.innerHeight}
-        onMouseDown={startPaint}
-        onMousemove={Painting}
-        onMouseup={stopPaint}
-        onMouseLeave={stopPaint}>
+        onMouseDown={handleStartPaint}
+        onMousemove={handlePainting}
+        onMouseup={handleStopPaint}
+        onMouseLeave={handleStopPaint}>
         <Layer>
           <Text
             text="Just start drawing"
