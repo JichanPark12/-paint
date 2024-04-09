@@ -26,7 +26,7 @@ const Paint = () => {
   const lines = history.lines.slice(0, history.currentIdx);
   const isDrawing = useRef(false);
 
-  const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {
+  const startPaint = (e: KonvaEventObject<MouseEvent>) => {
     isDrawing.current = true;
 
     const pos = e.target.getStage()?.getPointerPosition();
@@ -41,7 +41,7 @@ const Paint = () => {
     });
   };
 
-  const handleMouseMove = (e: KonvaEventObject<MouseEvent>) => {
+  const Painting = (e: KonvaEventObject<MouseEvent>) => {
     if (!isDrawing.current) {
       return;
     }
@@ -57,7 +57,7 @@ const Paint = () => {
     setHistory({ ...history, lines: [...newLines] });
   };
 
-  const handleMouseUp = () => {
+  const stopPaint = () => {
     isDrawing.current = false;
   };
 
@@ -116,10 +116,10 @@ const Paint = () => {
       <Stage
         width={window.innerWidth}
         height={window.innerHeight}
-        onMouseDown={handleMouseDown}
-        onMousemove={handleMouseMove}
-        onMouseup={handleMouseUp}
-        onMouseLeave={handleMouseUp}>
+        onMouseDown={startPaint}
+        onMousemove={Painting}
+        onMouseup={stopPaint}
+        onMouseLeave={stopPaint}>
         <Layer>
           <Text
             text="Just start drawing"
@@ -142,14 +142,6 @@ const Paint = () => {
           ))}
         </Layer>
       </Stage>
-      <select
-        value={tool}
-        onChange={(e) => {
-          setTool(e.target.value);
-        }}>
-        <option value="pen">Pen</option>
-        <option value="eraser">Eraser</option>
-      </select>
     </div>
   );
 };
