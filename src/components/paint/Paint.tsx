@@ -135,7 +135,7 @@ const Paint = () => {
   }, []);
   useEffect(() => {
     const initSocket = () => {
-      const socket = io('https://paint-snowy-seven.vercel.app', {
+      const socket = io('https://paint-production.up.railway.app', {
         path: '/api/socket/io',
         addTrailingSlash: false,
       });
