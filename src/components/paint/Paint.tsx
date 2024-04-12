@@ -16,7 +16,7 @@ interface History {
   lines: Array<ILine>;
 }
 
-interface EmitMouseData {
+interface BaseMouseData {
   type: 'painting' | 'startPaint' | 'undo' | 'redo';
   tool: string;
   position: {
@@ -24,6 +24,12 @@ interface EmitMouseData {
     y: number;
   };
 }
+
+interface UndoRedoMouseData extends Omit<BaseMouseData, 'tool' | 'position'> {
+  type: 'undo' | 'redo';
+}
+
+type EmitMouseData = BaseMouseData | UndoRedoMouseData;
 
 const INIT_HISTORY: History = {
   currentIdx: 0,
@@ -75,17 +81,23 @@ const Paint = () => {
   };
 
   const handleUndo = () => {
-    setHistory((history) => {
-      if (history.currentIdx === 0) return { ...history, currentIdx: 0 };
-      return { ...history, currentIdx: history.currentIdx - 1 };
+    emitMessage({
+      type: 'undo',
     });
+    // setHistory((history) => {
+    //   if (history.currentIdx === 0) return { ...history, currentIdx: 0 };
+    //   return { ...history, currentIdx: history.currentIdx - 1 };
+    // });
   };
 
   const handleRedo = () => {
-    setHistory((history) => {
-      if (history.currentIdx === history.lines.length) return { ...history };
-      return { ...history, currentIdx: history.currentIdx + 1 };
+    emitMessage({
+      type: 'redo',
     });
+    // setHistory((history) => {
+    //   if (history.currentIdx === history.lines.length) return { ...history };
+    //   return { ...history, currentIdx: history.currentIdx + 1 };
+    // });
   };
 
   const emitMessage = async (message: EmitMouseData) => {
@@ -114,15 +126,15 @@ const Paint = () => {
   }, []);
   useEffect(() => {
     const initSocket = () => {
-      const socket = io('https://remarkable-bunny-7ce0c3.netlify.app', {
-        path: '/api/socket/io',
-        addTrailingSlash: false,
-      });
-
-      // const socket = io('http://localhost:3000', {
+      // const socket = io('https://remarkable-bunny-7ce0c3.netlify.app', {
       //   path: '/api/socket/io',
       //   addTrailingSlash: false,
       // });
+
+      const socket = io('http://localhost:3000', {
+        path: '/api/socket/io',
+        addTrailingSlash: false,
+      });
 
       socket.on('connect', () => {
         setIsConnected(true);
@@ -165,6 +177,18 @@ const Paint = () => {
             const newLines = [...history.lines];
             newLines[newLines.length - 1] = { ...newLines[newLines.length - 1] };
             return { ...history, lines: [...newLines] };
+          });
+        }
+        if (data.type === 'undo') {
+          setHistory((history) => {
+            if (history.currentIdx === 0) return { ...history, currentIdx: 0 };
+            return { ...history, currentIdx: history.currentIdx - 1 };
+          });
+        }
+        if (data.type === 'redo') {
+          setHistory((history) => {
+            if (history.currentIdx === history.lines.length) return { ...history };
+            return { ...history, currentIdx: history.currentIdx + 1 };
           });
         }
       });
