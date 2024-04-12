@@ -16,7 +16,7 @@ interface History {
   lines: Array<ILine>;
 }
 
-interface EmitData {
+interface EmitMouseData {
   type: 'painting' | 'startPaint' | 'undo' | 'redo';
   tool: string;
   position: {
@@ -35,20 +35,14 @@ const Paint = () => {
   const [history, setHistory] = useState<History>(INIT_HISTORY);
   const [socket, setSocket] = useState<Socket>();
   const [isConnected, setIsConnected] = useState<boolean>(false);
-
   const lines = history.lines.slice(0, history.currentIdx);
   const isPainting = useRef(false);
-  console.log(history);
   const handleStartPaint = (e: KonvaEventObject<MouseEvent>) => {
     isPainting.current = true;
 
     const point = e.target.getStage()?.getPointerPosition();
     if (!point) return;
-    // setHistory({
-    //   ...history,
-    //   currentIdx: history.currentIdx + 1,
-    //   lines: [...lines, { tool, points: [point.x, point.y, point.x, point.y] }],
-    // });
+
     emitMessage({
       type: 'startPaint',
       tool,
@@ -58,7 +52,6 @@ const Paint = () => {
       },
     });
   };
-
   const throttledHandlePainting = throttle((e: KonvaEventObject<MouseEvent>) => {
     if (!isPainting.current) {
       return;
@@ -66,16 +59,6 @@ const Paint = () => {
     const stage = e.target.getStage();
     const point = stage?.getPointerPosition();
     if (!point) return;
-
-    // const lastLine = history.lines[history.lines.length - 1];
-    // lastLine.points = [...lastLine.points, point.x, point.y];
-
-    // const newLines = [...history.lines];
-    // newLines[newLines.length - 1] = { ...newLines[newLines.length - 1] };
-    // setHistory((history) => ({
-    //   ...history,
-    //   lines: [...newLines]
-    // }));
 
     emitMessage({
       type: 'painting',
@@ -85,11 +68,7 @@ const Paint = () => {
         y: point.y,
       },
     });
-  }, 200); // 100밀리초 간격으로 스로틀링
-
-  const handlePainting = (e: KonvaEventObject<MouseEvent>) => {
-    throttledHandlePainting(e);
-  };
+  }, 100);
 
   const handleStopPaint = () => {
     isPainting.current = false;
@@ -109,7 +88,7 @@ const Paint = () => {
     });
   };
 
-  const emitMessage = async (message: EmitData) => {
+  const emitMessage = async (message: EmitMouseData) => {
     await fetch('/api/chat', {
       method: 'POST',
       body: JSON.stringify({
@@ -135,16 +114,26 @@ const Paint = () => {
   }, []);
   useEffect(() => {
     const initSocket = () => {
-      const socket = io('https://paint-production.up.railway.app', {
+      const socket = io('https://remarkable-bunny-7ce0c3.netlify.app', {
         path: '/api/socket/io',
         addTrailingSlash: false,
       });
+
+      // const socket = io('http://localhost:3000', {
+      //   path: '/api/socket/io',
+      //   addTrailingSlash: false,
+      // });
+
       socket.on('connect', () => {
         setIsConnected(true);
       });
 
+      socket.on('connect_error', (err) => {
+        console.log(`connect_error due to ${err.message}`);
+      });
+
       socket.on('message', (res) => {
-        const data = JSON.parse(res) as EmitData;
+        const data = JSON.parse(res) as EmitMouseData;
 
         if (data.type === 'startPaint') {
           setHistory((history) => {
@@ -218,7 +207,7 @@ const Paint = () => {
         width={window.innerWidth}
         height={window.innerHeight}
         onMouseDown={handleStartPaint}
-        onMousemove={handlePainting}
+        onMousemove={throttledHandlePainting}
         onMouseup={handleStopPaint}
         onMouseLeave={handleStopPaint}>
         <Layer>
