@@ -1,6 +1,6 @@
 'use client';
 import { KonvaEventObject } from 'konva/lib/Node';
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Stage, Layer, Text, Line } from 'react-konva';
 import { useEffect } from 'react';
 import { Socket, io } from 'socket.io-client';
@@ -16,7 +16,7 @@ interface History {
   lines: Array<ILine>;
 }
 
-interface BaseMouseData {
+interface BaseEmitData {
   type: 'painting' | 'startPaint' | 'undo' | 'redo';
   tool: string;
   position: {
@@ -25,11 +25,11 @@ interface BaseMouseData {
   };
 }
 
-interface UndoRedoMouseData extends Omit<BaseMouseData, 'tool' | 'position'> {
+interface UndoRedoEmitData extends Omit<BaseEmitData, 'tool' | 'position'> {
   type: 'undo' | 'redo';
 }
 
-type EmitMouseData = BaseMouseData | UndoRedoMouseData;
+type EmitMouseData = BaseEmitData | UndoRedoEmitData;
 
 const INIT_HISTORY: History = {
   currentIdx: 0,
@@ -39,10 +39,13 @@ const INIT_HISTORY: History = {
 const Paint = () => {
   const [tool, setTool] = useState('pen');
   const [history, setHistory] = useState<History>(INIT_HISTORY);
+  const [throttleHistory, setThrottleHistory] = useState<ILine[]>([]);
   const [socket, setSocket] = useState<Socket>();
   const [isConnected, setIsConnected] = useState<boolean>(false);
+
   const lines = history.lines.slice(0, history.currentIdx);
   const isPainting = useRef(false);
+
   const handleStartPaint = (e: KonvaEventObject<MouseEvent>) => {
     isPainting.current = true;
 
@@ -58,15 +61,16 @@ const Paint = () => {
       },
     });
   };
-  const throttledHandlePainting = throttle((e: KonvaEventObject<MouseEvent>) => {
+  const handlePainting = (e: KonvaEventObject<MouseEvent>) => {
     if (!isPainting.current) {
       return;
     }
+
     const stage = e.target.getStage();
     const point = stage?.getPointerPosition();
     if (!point) return;
 
-    emitMessage({
+    throttleEmitMessage({
       type: 'painting',
       tool,
       position: {
@@ -74,7 +78,7 @@ const Paint = () => {
         y: point.y,
       },
     });
-  }, 100);
+  };
 
   const handleStopPaint = () => {
     isPainting.current = false;
@@ -84,20 +88,12 @@ const Paint = () => {
     emitMessage({
       type: 'undo',
     });
-    // setHistory((history) => {
-    //   if (history.currentIdx === 0) return { ...history, currentIdx: 0 };
-    //   return { ...history, currentIdx: history.currentIdx - 1 };
-    // });
   };
 
   const handleRedo = () => {
     emitMessage({
       type: 'redo',
     });
-    // setHistory((history) => {
-    //   if (history.currentIdx === history.lines.length) return { ...history };
-    //   return { ...history, currentIdx: history.currentIdx + 1 };
-    // });
   };
 
   const emitMessage = async (message: EmitMouseData) => {
@@ -108,6 +104,7 @@ const Paint = () => {
       }),
     });
   };
+  const throttleEmitMessage = useCallback(throttle(emitMessage, 3000), []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -124,13 +121,9 @@ const Paint = () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
+
   useEffect(() => {
     const initSocket = () => {
-      // const socket = io('https://remarkable-bunny-7ce0c3.netlify.app', {
-      //   path: '/api/socket/io',
-      //   addTrailingSlash: false,
-      // });
-
       const socket = io('http://localhost:3000', {
         path: '/api/socket/io',
         addTrailingSlash: false,
@@ -202,9 +195,11 @@ const Paint = () => {
       }
     };
   }, []);
+
   if (!isConnected) {
     return <div>로딩중입니다</div>;
   }
+
   return (
     <div>
       <div className="flex">
@@ -231,7 +226,7 @@ const Paint = () => {
         width={window.innerWidth}
         height={window.innerHeight}
         onMouseDown={handleStartPaint}
-        onMousemove={throttledHandlePainting}
+        onMousemove={handlePainting}
         onMouseup={handleStopPaint}
         onMouseLeave={handleStopPaint}>
         <Layer>
